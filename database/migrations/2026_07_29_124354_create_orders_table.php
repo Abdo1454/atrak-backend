@@ -1,63 +1,89 @@
 <?php
 
-use Illuminate\Database\Migrations\Migration;
-use Illuminate\Database\Schema\Blueprint;
-use Illuminate\Support\Facades\Schema;
+namespace App\Http\Controllers\Api;
 
-return new class extends Migration
+use App\Http\Controllers\Controller;
+use App\Models\Order;
+use App\Models\OrderItem;
+use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
+
+class OrderController extends Controller
 {
     /**
-     * Run the migrations.
+     * Store a newly created order.
      */
-  public function up(): void
-{
-    Schema::create('orders', function (Blueprint $table) {
-        $table->id();
+    public function store(Request $request)
+    {
+        $validated = $request->validate([
+            'customer_name' => 'required|string|max:255',
+            'customer_email' => 'required|email',
+            'customer_phone' => 'required|string|max:20',
 
-        $table->foreignId('user_id')
-              ->nullable()
-              ->constrained()
-              ->nullOnDelete();
+            'address' => 'required|string',
+            'city' => 'required|string',
+            'country' => 'required|string',
 
-        $table->string('customer_name');
+            'payment_method' => 'required|in:cash,visa',
 
-        $table->string('email');
+            'subtotal' => 'required|numeric',
+            'shipping' => 'required|numeric',
+            'total_price' => 'required|numeric',
 
-        $table->string('phone');
-
-        $table->text('address');
-
-        $table->string('city');
-
-        $table->string('country')->default('Egypt');
-
-        $table->enum('payment_method', [
-            'cash',
-            'visa'
+            'items' => 'required|array|min:1',
+            'items.*.product_id' => 'required|exists:products,id',
+            'items.*.quantity' => 'required|integer|min:1',
+            'items.*.price' => 'required|numeric',
         ]);
 
-        $table->enum('status', [
-            'pending',
-            'processing',
-            'completed',
-            'cancelled'
-        ])->default('pending');
+        DB::beginTransaction();
 
-        $table->decimal('subtotal', 10, 2);
+        try {
 
-        $table->decimal('shipping', 10, 2)->default(0);
+            $order = Order::create([
+                'customer_name' => $validated['customer_name'],
+                'email' => $validated['customer_email'],
+                'phone' => $validated['customer_phone'],
 
-        $table->decimal('total', 10, 2);
+                'address' => $validated['address'],
+                'city' => $validated['city'],
+                'country' => $validated['country'],
 
-        $table->timestamps();
-    });
-}
+                'payment_method' => $validated['payment_method'],
 
-    /**
-     * Reverse the migrations.
-     */
-    public function down(): void
-    {
-        Schema::dropIfExists('orders');
+                'subtotal' => $validated['subtotal'],
+                'shipping' => $validated['shipping'],
+                'total' => $validated['total_price'],
+
+                'status' => 'pending',
+            ]);
+
+            foreach ($validated['items'] as $item) {
+
+                OrderItem::create([
+                    'order_id' => $order->id,
+                    'product_id' => $item['product_id'],
+                    'quantity' => $item['quantity'],
+                    'price' => $item['price'],
+                ]);
+            }
+
+            DB::commit();
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Order created successfully.',
+                'order' => $order->load('items'),
+            ], 201);
+
+        } catch (\Exception $e) {
+
+            DB::rollBack();
+
+            return response()->json([
+                'success' => false,
+                'message' => $e->getMessage(),
+            ], 500);
+        }
     }
-};
+}

@@ -3,47 +3,74 @@
 namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
-use Illuminate\Http\Request;
+use App\Http\Requests\StoreOrderRequest;
+use App\Http\Resources\OrderResource;
+use App\Models\Order;
+use App\Models\OrderItem;
+use App\Models\Product;
+use Illuminate\Support\Facades\DB;
 
 class OrderController extends Controller
 {
-    /**
-     * Display a listing of the resource.
-     */
-    public function index()
+    public function store(StoreOrderRequest $request)
     {
-        //
-    }
+        $validated = $request->validated();
 
-    /**
-     * Store a newly created resource in storage.
-     */
-    public function store(Request $request)
-    {
-        //
-    }
+        DB::beginTransaction();
 
-    /**
-     * Display the specified resource.
-     */
-    public function show(string $id)
-    {
-        //
-    }
+        try {
 
-    /**
-     * Update the specified resource in storage.
-     */
-    public function update(Request $request, string $id)
-    {
-        //
-    }
+            $order = Order::create([
+                'customer_name' => $validated['customer_name'],
+                'email' => $validated['customer_email'],
+                'phone' => $validated['customer_phone'],
 
-    /**
-     * Remove the specified resource from storage.
-     */
-    public function destroy(string $id)
-    {
-        //
+                'address' => $validated['address'],
+                'city' => $validated['city'],
+                'country' => $validated['country'],
+
+                'payment_method' => $validated['payment_method'],
+
+                'subtotal' => $validated['subtotal'],
+                'shipping' => $validated['shipping'],
+                'total' => $validated['total_price'],
+
+                'status' => 'pending',
+            ]);
+
+            foreach ($validated['items'] as $item) {
+
+                $product = Product::findOrFail($item['product_id']);
+
+                OrderItem::create([
+                    'order_id' => $order->id,
+                    'product_id' => $product->id,
+                    'product_name' => $product->name,
+                    'price' => $item['price'],
+                    'quantity' => $item['quantity'],
+                    'custom_perfume' => null,
+                ]);
+            }
+
+            DB::commit();
+
+            $order->load('items');
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Order created successfully.',
+                'data' => new OrderResource($order),
+            ], 201);
+
+        } catch (\Throwable $e) {
+
+            DB::rollBack();
+
+            return response()->json([
+                'success' => false,
+                'message' => 'Failed to create order.',
+                'error' => $e->getMessage(),
+            ], 500);
+        }
     }
 }
