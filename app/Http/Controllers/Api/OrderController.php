@@ -3,39 +3,18 @@
 namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
+use App\Http\Requests\StoreOrderRequest;
+use App\Http\Resources\OrderResource;
 use App\Models\Order;
 use App\Models\OrderItem;
 use App\Models\Product;
-use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 
 class OrderController extends Controller
 {
-    /**
-     * Store a newly created order.
-     */
-    public function store(Request $request)
+    public function store(StoreOrderRequest $request)
     {
-        $validated = $request->validate([
-            'customer_name'  => 'required|string|max:255',
-            'customer_email' => 'required|email',
-            'customer_phone' => 'required|string|max:20',
-
-            'address' => 'required|string',
-            'city' => 'required|string',
-            'country' => 'required|string',
-
-            'payment_method' => 'required|in:cash,visa',
-
-            'subtotal' => 'required|numeric',
-            'shipping' => 'required|numeric',
-            'total_price' => 'required|numeric',
-
-            'items' => 'required|array|min:1',
-            'items.*.product_id' => 'required|exists:products,id',
-            'items.*.quantity' => 'required|integer|min:1',
-            'items.*.price' => 'required|numeric',
-        ]);
+        $validated = $request->validated();
 
         DB::beginTransaction();
 
@@ -75,10 +54,12 @@ class OrderController extends Controller
 
             DB::commit();
 
+            $order->load('items');
+
             return response()->json([
                 'success' => true,
                 'message' => 'Order created successfully.',
-                'order' => $order->load('items'),
+                'data' => new OrderResource($order),
             ], 201);
 
         } catch (\Throwable $e) {
@@ -87,7 +68,8 @@ class OrderController extends Controller
 
             return response()->json([
                 'success' => false,
-                'message' => $e->getMessage(),
+                'message' => 'Failed to create order.',
+                'error' => $e->getMessage(),
             ], 500);
         }
     }
