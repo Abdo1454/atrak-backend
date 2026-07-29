@@ -52,7 +52,7 @@ class ProductController extends Controller
                 $query->latest();
             })
 
-            ->paginate($request->get('per_page', 12));
+            ->paginate($request->input('per_page', 12));
 
         return ProductResource::collection($products);
     }
