@@ -9,13 +9,34 @@ return new class extends Migration
     /**
      * Run the migrations.
      */
-    public function up(): void
-    {
-        Schema::create('products', function (Blueprint $table) {
-            $table->id();
-            $table->timestamps();
-        });
-    }
+  public function up(): void
+{
+    Schema::create('products', function (Blueprint $table) {
+        $table->id();
+
+        $table->foreignId('category_id')
+              ->constrained()
+              ->cascadeOnDelete();
+
+        $table->string('name');
+
+        $table->string('slug')->unique();
+
+        $table->text('description');
+
+        $table->decimal('price', 10, 2);
+
+        $table->integer('stock')->default(0);
+
+        $table->string('image');
+
+        $table->decimal('rating', 2, 1)->default(0);
+
+        $table->boolean('featured')->default(false);
+
+        $table->timestamps();
+    });
+}
 
     /**
      * Reverse the migrations.

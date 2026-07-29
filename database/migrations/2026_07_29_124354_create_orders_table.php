@@ -9,13 +9,49 @@ return new class extends Migration
     /**
      * Run the migrations.
      */
-    public function up(): void
-    {
-        Schema::create('orders', function (Blueprint $table) {
-            $table->id();
-            $table->timestamps();
-        });
-    }
+  public function up(): void
+{
+    Schema::create('orders', function (Blueprint $table) {
+        $table->id();
+
+        $table->foreignId('user_id')
+              ->nullable()
+              ->constrained()
+              ->nullOnDelete();
+
+        $table->string('customer_name');
+
+        $table->string('email');
+
+        $table->string('phone');
+
+        $table->text('address');
+
+        $table->string('city');
+
+        $table->string('country')->default('Egypt');
+
+        $table->enum('payment_method', [
+            'cash',
+            'visa'
+        ]);
+
+        $table->enum('status', [
+            'pending',
+            'processing',
+            'completed',
+            'cancelled'
+        ])->default('pending');
+
+        $table->decimal('subtotal', 10, 2);
+
+        $table->decimal('shipping', 10, 2)->default(0);
+
+        $table->decimal('total', 10, 2);
+
+        $table->timestamps();
+    });
+}
 
     /**
      * Reverse the migrations.
