@@ -14,45 +14,41 @@ class ProductController extends Controller
      */
     public function index(Request $request)
     {
-        $products = Product::with('category')
+        $query = Product::with('category');
 
-            // Search by product name
-            ->when($request->filled('search'), function ($query) use ($request) {
-                $query->where('name', 'like', '%' . $request->search . '%');
-            })
+        // Search
+        if ($request->filled('search')) {
+            $query->where('name', 'like', '%' . $request->search . '%');
+        }
 
-            // Filter by category
-            ->when($request->filled('category'), function ($query) use ($request) {
-                $query->where('category_id', $request->category);
-            })
+        // Filter by category
+        if ($request->filled('category')) {
+            $query->where('category_id', $request->category);
+        }
 
-            // Sorting
-            ->when($request->filled('sort'), function ($query) use ($request) {
+        // Sorting
+        switch ($request->input('sort')) {
+            case 'price_asc':
+                $query->orderBy('price', 'asc');
+                break;
 
-                switch ($request->sort) {
+            case 'price_desc':
+                $query->orderBy('price', 'desc');
+                break;
 
-                    case 'price_asc':
-                        $query->orderBy('price');
-                        break;
+            case 'oldest':
+                $query->oldest();
+                break;
 
-                    case 'price_desc':
-                        $query->orderByDesc('price');
-                        break;
-
-                    case 'oldest':
-                        $query->oldest();
-                        break;
-
-                    default:
-                        $query->latest();
-                        break;
-                }
-
-            }, function ($query) {
+            case 'newest':
+            default:
                 $query->latest();
-            })
+                break;
+        }
 
-            ->paginate($request->input('per_page', 12));
+        $products = $query->paginate(
+            $request->input('per_page', 12)
+        );
 
         return ProductResource::collection($products);
     }
