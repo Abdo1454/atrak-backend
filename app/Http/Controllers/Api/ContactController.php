@@ -1,24 +1,57 @@
 <?php
 
-namespace App\Http\Controllers\Api;
+namespace App\Http\Controllers\Api\Admin;
 
 use App\Http\Controllers\Controller;
-use App\Http\Requests\StoreContactRequest;
 use App\Models\Contact;
+use Illuminate\Http\Request;
 
-class ContactController extends Controller
+
+class MessageController extends Controller
 {
+
     /**
-     * Store a newly created contact message.
+     * Display all contact messages
      */
-    public function store(StoreContactRequest $request)
+    public function index()
     {
-        $contact = Contact::create($request->validated());
+        $messages = Contact::latest()
+            ->paginate(10);
+
+
+        return response()->json($messages);
+    }
+
+
+
+    /**
+     * Display single message
+     */
+    public function show(Contact $message)
+    {
+        return response()->json($message);
+    }
+
+
+
+    /**
+     * Delete message
+     */
+    public function destroy(Contact $message)
+    {
+
+        $message->delete();
+
 
         return response()->json([
+
             'success' => true,
-            'message' => 'Message sent successfully.',
-            'data' => $contact,
-        ], 201);
+
+            'message' =>
+                'Message deleted successfully'
+
+        ]);
+
     }
+
 }
