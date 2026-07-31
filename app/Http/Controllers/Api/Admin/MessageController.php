@@ -25,7 +25,7 @@ class MessageController extends Controller
 
 
     /**
-     * Display single message
+     * Show single message
      */
     public function show(Contact $message)
     {
@@ -44,8 +44,6 @@ class MessageController extends Controller
 
 
         return response()->json([
-
-            'success' => true,
 
             'message' =>
                 'Message deleted successfully'

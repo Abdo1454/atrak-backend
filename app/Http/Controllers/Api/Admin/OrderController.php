@@ -15,17 +15,15 @@ class OrderController extends Controller
      */
     public function index()
     {
-
         $orders = Order::with([
-                'items',
+                'user',
+                'items.product'
             ])
             ->latest()
             ->paginate(10);
 
 
-
         return response()->json($orders);
-
     }
 
 
@@ -35,15 +33,12 @@ class OrderController extends Controller
      */
     public function show(Order $order)
     {
-
         return response()->json(
-
             $order->load([
-                'items'
+                'user',
+                'items.product'
             ])
-
         );
-
     }
 
 
@@ -54,32 +49,22 @@ class OrderController extends Controller
     public function update(
         Request $request,
         Order $order
-    )
-    {
+    ) {
 
         $validated = $request->validate([
 
-            'status' => [
-                'required',
-                'in:pending,processing,shipped,delivered,cancelled'
-            ]
-
-        ]);
-
-
-
-        $order->update([
-
             'status' =>
-                $validated['status']
+                'required|in:Pending,Processing,Delivered,Cancelled',
 
         ]);
+
+
+
+        $order->update($validated);
 
 
 
         return response()->json([
-
-            'success' => true,
 
             'message' =>
                 'Order status updated successfully',
@@ -90,5 +75,6 @@ class OrderController extends Controller
         ]);
 
     }
+
 
 }

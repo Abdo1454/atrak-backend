@@ -7,14 +7,18 @@ use App\Models\User;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
 
+
 class AuthController extends Controller
 {
+
     /**
      * Register new user
      */
     public function register(Request $request)
     {
+
         $validated = $request->validate([
+
             'name' => [
                 'required',
                 'string',
@@ -32,16 +36,29 @@ class AuthController extends Controller
                 'min:6',
                 'confirmed'
             ],
+
         ]);
+
 
 
         $user = User::create([
-            'name' => $validated['name'],
 
-            'email' => $validated['email'],
+            'name' =>
+                $validated['name'],
 
-            'password' => $validated['password'],
+            'email' =>
+                $validated['email'],
+
+            'password' =>
+                Hash::make(
+                    $validated['password']
+                ),
+
+            'role' =>
+                'customer',
+
         ]);
+
 
 
         $token = $user
@@ -49,16 +66,38 @@ class AuthController extends Controller
             ->plainTextToken;
 
 
+
         return response()->json([
+
             'success' => true,
 
-            'message' => 'Account created successfully',
+            'message' =>
+                'Account created successfully',
 
-            'user' => $user,
+            'user' => [
 
-            'token' => $token,
+                'id' =>
+                    $user->id,
+
+                'name' =>
+                    $user->name,
+
+                'email' =>
+                    $user->email,
+
+                'role' =>
+                    $user->role,
+
+            ],
+
+            'token' =>
+                $token,
+
         ], 201);
+
     }
+
+
 
 
     /**
@@ -66,7 +105,9 @@ class AuthController extends Controller
      */
     public function login(Request $request)
     {
+
         $validated = $request->validate([
+
             'email' => [
                 'required',
                 'email'
@@ -75,13 +116,16 @@ class AuthController extends Controller
             'password' => [
                 'required'
             ],
+
         ]);
+
 
 
         $user = User::where(
             'email',
             $validated['email']
         )->first();
+
 
 
         if (
@@ -91,10 +135,16 @@ class AuthController extends Controller
                 $user->password
             )
         ) {
+
             return response()->json([
-                'message' => 'Invalid email or password'
-            ], 401);
+
+                'message' =>
+                    'Invalid email or password'
+
+            ],401);
+
         }
+
 
 
         $token = $user
@@ -102,14 +152,37 @@ class AuthController extends Controller
             ->plainTextToken;
 
 
+
         return response()->json([
+
             'success' => true,
 
-            'user' => $user,
 
-            'token' => $token,
+            'user' => [
+
+                'id' =>
+                    $user->id,
+
+                'name' =>
+                    $user->name,
+
+                'email' =>
+                    $user->email,
+
+                'role' =>
+                    $user->role,
+
+            ],
+
+
+            'token' =>
+                $token,
+
         ]);
+
     }
+
+
 
 
     /**
@@ -117,16 +190,24 @@ class AuthController extends Controller
      */
     public function logout(Request $request)
     {
+
         $request
             ->user()
             ->currentAccessToken()
             ->delete();
 
 
+
         return response()->json([
-            'message' => 'Logged out successfully'
+
+            'message' =>
+                'Logged out successfully'
+
         ]);
+
     }
+
+
 
 
     /**
@@ -134,8 +215,14 @@ class AuthController extends Controller
      */
     public function user(Request $request)
     {
+
         return response()->json([
-            'user' => $request->user()
+
+            'user' =>
+                $request->user()
+
         ]);
+
     }
+
 }
