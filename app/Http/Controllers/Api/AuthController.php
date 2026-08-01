@@ -7,126 +7,88 @@ use App\Models\User;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
 
-
 class AuthController extends Controller
 {
-
     /**
      * Register new user
      */
     public function register(Request $request)
     {
-
         $validated = $request->validate([
-
             'name' => [
                 'required',
                 'string',
-                'max:255'
+                'max:255',
             ],
 
             'email' => [
                 'required',
                 'email',
-                'unique:users,email'
+                'unique:users,email',
             ],
 
             'password' => [
                 'required',
                 'min:6',
-                'confirmed'
+                'confirmed',
             ],
-
         ]);
-
-
 
         $user = User::create([
+            'name' => $validated['name'],
 
-            'name' =>
-                $validated['name'],
+            'email' => $validated['email'],
 
-            'email' =>
-                $validated['email'],
+            'password' => Hash::make($validated['password']),
 
-            'password' =>
-                Hash::make(
-                    $validated['password']
-                ),
-
-            'role' =>
-                'customer',
-
+            'role' => 'customer',
         ]);
-
-
 
         $token = $user
             ->createToken('auth_token')
             ->plainTextToken;
 
-
-
         return response()->json([
-
             'success' => true,
 
-            'message' =>
-                'Account created successfully',
+            'message' => 'Account created successfully',
 
             'user' => [
+                'id' => $user->id,
 
-                'id' =>
-                    $user->id,
+                'name' => $user->name,
 
-                'name' =>
-                    $user->name,
+                'email' => $user->email,
 
-                'email' =>
-                    $user->email,
+                'role' => $user->role,
 
-                'role' =>
-                    $user->role,
-
+                'is_admin' => $user->role === 'admin',
             ],
 
-            'token' =>
-                $token,
-
+            'token' => $token,
         ], 201);
-
     }
-
-
-
 
     /**
      * Login user
      */
     public function login(Request $request)
     {
-
         $validated = $request->validate([
-
             'email' => [
                 'required',
-                'email'
+                'email',
             ],
 
             'password' => [
-                'required'
+                'required',
             ],
-
         ]);
-
-
 
         $user = User::where(
             'email',
             $validated['email']
         )->first();
-
-
 
         if (
             !$user ||
@@ -135,94 +97,76 @@ class AuthController extends Controller
                 $user->password
             )
         ) {
-
             return response()->json([
+                'success' => false,
 
-                'message' =>
-                    'Invalid email or password'
-
-            ],401);
-
+                'message' => 'Invalid email or password',
+            ], 401);
         }
-
-
 
         $token = $user
             ->createToken('auth_token')
             ->plainTextToken;
 
-
-
         return response()->json([
-
             'success' => true,
 
+            'message' => 'Login successful',
 
             'user' => [
+                'id' => $user->id,
 
-                'id' =>
-                    $user->id,
+                'name' => $user->name,
 
-                'name' =>
-                    $user->name,
+                'email' => $user->email,
 
-                'email' =>
-                    $user->email,
+                'role' => $user->role,
 
-                'role' =>
-                    $user->role,
-
+                'is_admin' => $user->role === 'admin',
             ],
 
-
-            'token' =>
-                $token,
-
+            'token' => $token,
         ]);
-
     }
-
-
-
 
     /**
      * Logout user
      */
     public function logout(Request $request)
     {
-
         $request
             ->user()
             ->currentAccessToken()
             ->delete();
 
-
-
         return response()->json([
+            'success' => true,
 
-            'message' =>
-                'Logged out successfully'
-
+            'message' => 'Logged out successfully',
         ]);
-
     }
 
-
-
-
     /**
-     * Current user
+     * Current authenticated user
      */
     public function user(Request $request)
     {
+        $user = $request->user();
 
         return response()->json([
+            'success' => true,
 
-            'user' =>
-                $request->user()
+            'user' => [
+                'id' => $user->id,
 
+                'name' => $user->name,
+
+                'email' => $user->email,
+
+                'role' => $user->role,
+
+                'is_admin' => $user->role === 'admin',
+            ],
         ]);
-
     }
-
 }
