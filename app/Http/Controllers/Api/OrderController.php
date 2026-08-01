@@ -1,94 +1,115 @@
 <?php
 
-namespace App\Http\Controllers\Api\Admin;
+namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
 use App\Models\Order;
+use App\Models\OrderItem;
 use Illuminate\Http\Request;
-
+use Illuminate\Support\Facades\DB;
 
 class OrderController extends Controller
 {
 
     /**
-     * Display all orders
+     * Store new order
      */
-    public function index()
+    public function store(Request $request)
     {
-
-        $orders = Order::with([
-                'items',
-            ])
-            ->latest()
-            ->paginate(10);
-
-
-
-        return response()->json($orders);
-
-    }
-
-
-
-    /**
-     * Display single order
-     */
-    public function show(Order $order)
-    {
-
-        return response()->json(
-
-            $order->load([
-                'items'
-            ])
-
-        );
-
-    }
-
-
-
-    /**
-     * Update order status
-     */
-    public function update(
-        Request $request,
-        Order $order
-    )
-    {
-
         $validated = $request->validate([
 
-            'status' => [
+            'user_id' => [
+                'nullable',
+                'integer',
+                'exists:users,id'
+            ],
+
+            'items' => [
                 'required',
-                'in:pending,processing,shipped,delivered,cancelled'
-            ]
+                'array'
+            ],
+
+            'items.*.product_id' => [
+                'required',
+                'integer',
+                'exists:products,id'
+            ],
+
+            'items.*.quantity' => [
+                'required',
+                'integer',
+                'min:1'
+            ],
+
+            'total' => [
+                'required',
+                'numeric',
+                'min:0'
+            ],
+
+            'address' => [
+                'required',
+                'string'
+            ],
+
+            'payment_method' => [
+                'nullable',
+                'string'
+            ],
 
         ]);
 
 
 
-        $order->update([
+        $order = DB::transaction(function () use ($validated) {
 
-            'status' =>
-                $validated['status']
 
-        ]);
+            $order = Order::create([
+
+                'user_id' => $validated['user_id'] ?? null,
+
+                'total' => $validated['total'],
+
+                'address' => $validated['address'],
+
+                'payment_method' =>
+                    $validated['payment_method'] ?? null,
+
+            ]);
+
+
+
+            foreach ($validated['items'] as $item) {
+
+                OrderItem::create([
+
+                    'order_id' => $order->id,
+
+                    'product_id' =>
+                        $item['product_id'],
+
+                    'quantity' =>
+                        $item['quantity'],
+
+                ]);
+
+            }
+
+
+
+            return $order->load('items');
+
+        });
 
 
 
         return response()->json([
 
-            'success' => true,
+            'message' => 'Order created successfully',
 
-            'message' =>
-                'Order status updated successfully',
+            'order' => $order
 
-            'order' =>
-                $order
-
-        ]);
-
+        ], 201);
     }
 
 }
